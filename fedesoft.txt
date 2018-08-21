@@ -1,0 +1,630 @@
+20180723
+===============
+
+**Rails Intro**
+
+version estable de ruby para windows 2.4.4
+bases de datos soportadas por rails
+
+gem install rails
+rails new miapp
+bundle install
+rails server
+
+rails generate controller controllername viewname
+
+Ejemplo
+rails generate controller user index
+
+rails routes
+
+rails generate scaffold producto name:string
+
+rails db:migrate
+
+
+20180727
+===============
+
+**Rails Model Mappings Postgres** 
+
+rails new database --database=postgresql
+
+rails generate model user
+
+
+**PRUEBAS DE CRUD EN CONSOLA**
+rails console
+
+u = User.create(name:"nombre", email:"micorreo@domain.com")
+ 
+u.destroy
+
+u = User.new
+
+u.name="mi nombre"
+u.email="micorreo@domain.com"
+ 
+u.save
+
+usuario = User.find(1)
+
+usuario = User.find_by(name:"mi nombre")  
+
+usuario = User.where(name:"mi nombre", email: "micorreo@domain.com")
+
+usuario = User.where(name:"mi nombre", email: "micorreo@domain.com").first
+usuario = User.where(name:"mi nombre", email: "micorreo@domain.com").last
+
+usuarios = User.all
+usuario  = User.all.first
+
+***MODIFICACION DEL MODELO***
+
+rails generate migration AddPhoneToUser
+
+---realizo los cambios en la migracion recien creada---
+
+rails db:migrate
+
+rails db:migrate:down VERSION=20180728000209
+
+rails db:seed
+
+
+20180730
+===============
+
+**Relaciones entre tablas o modelos**
+
+rails new associations
+
+rails server / rails s
+
+rails generate model author name:string
+
+rails generate model book name:string author:references
+
+a = Author.create(name:"a1")
+
+b = Book.create(name:"b1", author_id: a.id) / a.books.create(name:"b2")
+
+p = Product.Create(name:"P1")
+
+s = Store.Create(name:"S1")
+
+s.products.push(p)
+
+en la migración en caso que se migre y olvide crear la relación
+add_reference :tabla_destino, :tabla_origen
+
+*********************************************************
+-tarea crear indice unico de llaves foraneas compuestas
+-tarea como agregar mas valores a la relacion (s.products.push(p))
+-actividad del modelo de la aplicacion, apliciar las migraciones con asociaciones
+*********************************************************
+
+20180803
+===============
+
+**Relaciones entre tablas o modelos many-to-many bookstore**
+**SEGURIDAD**
+
+rails new bookstore
+
+rails g model author name
+
+rails g model book name author:references
+
+rails db:migrate
+
+rails server
+
+http://localhost:3000/
+
+Se configura manualmente las relaciones en los modelos , en Author (has_many :books) en books (belongs_to :author)
+
+rails console
+
+Author.create(name:"a1")
+
+a  = Author.first
+ 
+a.books.create(name:"b1")
+
+a.books
+
+exit
+
+rails g controller Author index
+
+crear manualmente una ruta para el nuevo controller en routes.rb
+
+get 'autores', to: "author#index"
+
+https://github.com/esgantivar/fullstack-docs
+
+***Installar nueva gema para seguridad***
+
+https://rubygems.org/
+
+buscar la gema "devise"
+
+agregar linea de codigo de la gema manualmente al gemfile
+
+gem 'devise', '~> 4.4', '>= 4.4.3'
+
+bundle install
+
+para verificar las gemas instaladas: bundle list
+
+rails generate devise:install
+
+rails generate devise:Views
+
+rails generate devise User
+
+rails g controller Bookstore index
+
+migrar los objetos de dievise: rails db:migrate
+
+configuracion ruta raiz en routes.rb
+root to: 'bookstore#index'
+
+rails g model userbook
+
+configurar las relaciones manualmente
+
+rails db:migrate
+
+rails console
+
+u = User.first
+
+b = Book.first
+
+u.books.push(b)
+
+
+20180806
+===============
+
+**Continuación Crud**
+
+rails g controller User index
+
+
+***API's***
+
+Se levantan las restricciones de csrf
+
+rails generate controller api
+
+
+
+201808010
+===============
+
+***API's***
+
+rails new clima
+
+rails g model Location name:string
+
+rails g model Report status:string temp:integer location:references
+
+rails db:migrate / rake db:migrate (son comandos equivalentes cualquiera de los dos hace lo mismo)
+
+rails c
+
+configurar la relación en los modelos :
+
+class Location < ApplicationRecord
+    has_many :reports
+end
+class Report < ApplicationRecord
+  belongs_to :location
+end
+
+
+reload!
+
+Se edita el archivo seeds.rb:
+
+l = Location.create(name:"Bogotá")
+
+l.reports.create(status:"lluvioso", temp: 12)
+l.reports.create(status:"soleado", temp:33)
+
+exit
+
+rails db:seed / rake db:seed
+
+rails console
+
+exit
+
+rails g controller Location
+
+editar archivo de rutas y escribir lo siguiente para crear todas las rutas del CRUD:
+resources :location
+
+rails routes
+
+rails server
+
+crear la accion index en el controller
+def index
+	render json: {
+		locations: Location.all
+	}
+end
+
+abrir postman
+
+http://localhost:3000/location
+
+abrir el gemfile
+
+verificar que la gema jbuilder este incluida
+
+ir a la ruta app/views/location y crear un archivo index.json.jbuilder
+escribir el archivo de jbuilder:
+
+json.locations @locations
+
+cambiar el codigo de la acción:
+
+def index
+    @locations = Location.all
+end
+
+abrir postman
+
+http://localhost:3000/location
+
+resultado postman:
+
+{
+    "locations": [
+        {
+            "id": 1,
+            "name": "Bogotá",
+            "created_at": "2018-08-10T23:59:12.769Z",
+            "updated_at": "2018-08-10T23:59:12.769Z"
+        }
+    ]
+}
+
+creat una accion llamada show con este codigo:
+def show
+	location_id = params[:id]
+	@location = Location.find(location_id)
+end
+
+Crear una pagina show.json.jbuilder con el siguiente codigo	:
+
+json.id @location.id
+json.name @location.name
+
+abrir postman
+
+http://localhost:3000/location/1
+
+resultado postman:
+
+{
+    "id": 1,
+    "name": "Bogotá"
+}
+
+**MODULO**
+
+en app/controller crear una carpeta llamada api
+
+en app/controller/api crear una carpeta llamada v1
+
+arrastrar el archivo location_controller a la carpeta v1
+
+editar el nombre del controlador por esto: 
+class Api::V1::LocationController 
+
+abrir el archivo de rutas para enseñarle a rails a encontrar el controlador:
+namespace :api do
+    namespace :v1 do
+      resources :location
+    end
+end
+
+rails routes
+
+en app/views crear una carpeta llamada api
+
+en app/views/api crear una carpeta llamada v1
+
+arrastrar la carpeta location a la carpeta v1
+
+abrir postman
+
+http://localhost:3000/api/v1/location/1
+
+resultado postman:
+
+{
+    "id": 1,
+    "name": "Bogotá"
+}
+
+
+para llamar desde el explorador:
+http://localhost:3000/api/v1/location.json
+
+**ARREGLAR PARA QUE NO TOQUE PONER LA EXTENSION .json DESDE NAVEGADOR**
+
+el controlador queda asi:
+
+class Api::V1::LocationController < ApplicationController
+    before_action :set_default_format
+	before_action :set_location, except: [:index]
+    def index
+        @locations = Location.all
+    end
+
+    def show
+        location_id = params[:id]
+        @location = Location.find(location_id)
+    end
+
+    private
+    def set_default_format
+        request.format = :json
+    end
+	
+	def set_location
+        location_id = params[:id]
+        @location = Location.find(location_id)
+    end
+end
+
+
+se agregó una funcion y un filtro para que todo request por default sea json
+Excepcion de filtro: before_action :set_location, except: [:index]
+
+
+**CREAR CONTROLLER BASE**
+
+en app/controller crear una archivo llamado api_controller.rb
+
+la clase ApiController debe heredar de ActionController::Base
+
+el controller location_controller debe heredar de ApiController
+
+Pasar toda la logica comun para el ApiController
+
+
+rails g controller Report
+
+mover controlador Report a la carpeta V1
+
+agregar la ruta al nombre del controller y ponerlo a extender de ApiController
+class Api::V1::ReportController < ApiController
+    before_action :set_location
+    def index        
+        @reports = @location.reports
+    end 
+
+    private
+    def set_location
+        location_id = params[:location_id]
+        @location = Location.find(location_id)
+    end
+end
+
+  
+Crear la estructura de ruta en routes.rb el reporte dentro de locations porque semanticamente asi tiene sentido:
+namespace :api do
+    namespace :v1 do
+      resources :location do
+        resources :report
+      end
+    end
+  end
+  
+abrir postman 
+http://localhost:3000/api/v1/location/1/report
+
+resultado postman:
+{
+    "reports": [
+        {
+            "id": 1,
+            "status": "lluvioso",
+            "temp": 12,
+            "location_id": 1,
+            "created_at": "2018-08-10T23:59:13.038Z",
+            "updated_at": "2018-08-10T23:59:13.038Z"
+        },
+        {
+            "id": 2,
+            "status": "soleado",
+            "temp": 33,
+            "location_id": 1,
+            "created_at": "2018-08-10T23:59:13.277Z",
+            "updated_at": "2018-08-10T23:59:13.277Z"
+        }
+    ]
+}
+
+**POST**
+
+quitar la verificacion del csrf token ubicando un filtro en apicontroller : skip_before_action :verify_authenticity_token
+
+....paginas web para visitar.....
+.....codemi
+.....gorails
+
+
+
+
+201808011
+===============
+  
+***PROYECTO****
+
+Chapinero	=> Violencia contra la mujer 	=> App Boton de Panico
+ Se registra el usuario, con su direccion, localizacion, contactos
+ la app debe mostrar los números de emergencia, el número del cuadrante
+ la opcion emitir alerta, muestra un boton rojo y despues de presionarlo envia mensaje de texto, de whatsapp a los contactos registrados
+
+
+Engativa	=> Reciclar para respirar		=> App ReciclArte "El arte de reciclar"
+ app que indique como reciclar, como separar residuos
+ debe permitir ubicar geograficamente lugares de reclclaje
+
+
+
+Usaquen		=> Formalización de bocitaxis	=> BiciExpress, TaxiBici
+	
+
+  
+
+
+201808013
+===============
+
+***TOKENS ASEGURANDO API'S***
+
+
+JWT tiene una gema para trabajar en rails llamada KNOCK
+
+https://rubygems.org/
+
+buscar knock
+
+copiar la instrucciòn gemfile
+
+gem 'knock', '~> 2.1', '>= 2.1.1'
+
+abrir el archivo gemfile y pegar el texto anterior
+
+abajo en el archivo descomentar la gema bcrypt
+
+bundle install
+
+rails generate knock:install
+
+buscar el archivo config/initializers/knock.rb y descomentar la linea 39
+esto:
+config.token_secret_signature_key = -> { Rails.application.secrets.secret_key_base }
+
+por esto:
+config.token_secret_signature_key = -> { Rails.application.credentials.read }
+
+rails generate knock:token_controller user
+
+crear el modelo de usuario
+este debe tener un csmpo llamado password_digest y un campo email
+
+rails generate model User email:string password_digest:string
+
+el modelo User agregar el filtro : has_secure_password
+
+rails db:migrate
+
+rails console
+
+User.create(email:"brabame@domain.com", password:"123456", password_confirmation:"123456")
+
+agregar en la superclase api_controller un filtro : include Knock::Authenticable
+
+reiniciar webserver
+
+al user_token_controller agregar el filtro: skip_before_action :verify_authenticity_token
+
+al api_controller agregar filtro: before_action :authenticate_user
+
+  
+20180817
+===============
+
+***HEROKU AND SEND EMAILS***
+
+
+https://www.heroku.com/
+
+Crear cuenta
+
+
+Instalar Heroku CLI
+
+heroku -v
+
+heroku login
+
+rails new myapp --database=postgresql
+
+bundle install
+
+
+ir al archivo gemfile y en el grupo de desarrollo que quede asi:
+group :development do
+  # Access an interactive console on exception pages or by calling 'console' anywhere in the code.
+  gem 'web-console', '>= 3.3.0'
+  gem 'sqlite3'
+end
+
+ir al archivo database.yml y la seccion developement que quede asi :
+development:
+  <<: *default
+  adapter: sqlite3
+  database: myapp_development
+
+rails generate controller welcome
+
+
+Crear una vista llamada index.html.erb
+<h2>Hello World</h2>
+<p>
+  The time is now: <%= Time.now %>
+</p>
+
+
+crear una accion en el controlador llamada index
+
+rails db:migrate
+
+rails server  
+
+git init
+
+git status
+
+git commit -m "Init"
+
+heroku create
+
+git push heroku master
+
+heroku run rake db:migrate
+
+heroku open
+
+**ENVÍO DE CORREOS**
+
+Action Mailer 
+
+rails g mailer UserMailer
+
+
+
+
+
+https://app.webinarjam.net/live/2348/68a4e363fc/0/ny196782891Q3e
+Chawala2018*
+
+
+
+
+
+
+ 
